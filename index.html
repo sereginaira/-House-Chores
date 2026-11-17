@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>House Chores - Космическая Игра</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background: #050510;
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #fff;
+        }
+
+        /* Звёзды */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            animation: twinkle var(--duration) ease-in-out infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.5); }
+        }
+
+        /* Комета */
+        .comet {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px 2px #00f3ff, 0 0 30px 5px #00f3ff;
+            animation: cometFly 4s linear infinite;
+            z-index: 0;
+        }
+
+        .comet::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 80px;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #00f3ff);
+            transform: rotate(0deg);
+        }
+
+        @keyframes cometFly {
+            0% { transform: translate(100vw, -20px) rotate(-30deg); opacity: 1; }
+            100% { transform: translate(-100px, 100vh) rotate(-30deg); opacity: 0; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2em;
+            color: #00f3ff;
+            text-shadow: 0 0 20px #00f3ff, 0 0 40px #00f3ff;
+            margin: 20px 0;
+            font-weight: 900;
+        }
+
+        h1 span {
+            color: #bc13fe;
+            text-shadow: 0 0 20px #bc13fe, 0 0 40px #bc13fe;
+        }
+
+        /* Навигация режимов */
+        .mode-nav {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .mode-btn {
+            padding: 12px 24px;
+            border: 2px solid #00f3ff;
+            background: rgba(0, 243, 255, 0.1);
+            color: #00f3ff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85em;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        .mode-btn:hover, .mode-btn.active {
+            background: #00f3ff;
+            color: #050510;
+            box-shadow: 0 0 20px #00f3ff, 0 0 40px rgba(0, 243, 255, 0.3);
+        }
+
+        .mode-btn:nth-child(2) {
+            border-color: #bc13fe;
+            color: #bc13fe;
+            background: rgba(188, 19, 254, 0.1);
+        }
+
+        .mode-btn:nth-child(2):hover, .mode-btn:nth-child(2).active {
+            background: #bc13fe;
+            color: #050510;
+            box-shadow: 0 0 20px #bc13fe, 0 0 40px rgba(188, 19, 254, 0.3);
+        }
+
+        .mode-btn:nth-child(3) {
+            border-color: #0aff0a;
+            color: #0aff0a;
+            background: rgba(10, 255, 10, 0.1);
+        }
+
+        .mode-btn:nth-child(3):hover, .mode-btn:nth-child(3).active {
+            background: #0aff0a;
+            color: #050510;
+            box-shadow: 0 0 20px #0aff0a, 0 0 40px rgba(10, 255, 10, 0.3);
+        }
+
+        /* Счёт */
+        .score-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 15px 0;
+            font-size: 0.9em;
+        }
+
+        .score-item {
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .score-item .num {
+            color: #0aff0a;
+            font-weight: 700;
+            font-size: 1.2em;
+        }
+
+        /* Секции игр */
+        .game-section {
+            display: none;
+        }
+
+        .game-section.active {
+            display: block;
+        }
+
+        /* ===== РЕЖИМ 1: КАРТОЧКИ ===== */
+        .flashcards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .flashcard {
+            perspective: 1000px;
+            height: 140px;
+            cursor: pointer;
+        }
+
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .flashcard.flipped .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard-front, .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            text-align: center;
+            font-size: 0.85em;
+            line-height: 1.4;
+        }
+
+        .flashcard-front {
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.15), rgba(188, 19, 254, 0.15));
+            border: 2px solid #00f3ff;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3), inset 0 0 15px rgba(0, 243, 255, 0.1);
+            color: #00f3ff;
+            font-weight: 700;
+        }
+
+        .flashcard-back {
+            background: linear-gradient(135deg, rgba(188, 19, 254, 0.15), rgba(10, 255, 10, 0.15));
+            border: 2px solid #bc13fe;
+            box-shadow: 0 0 15px rgba(188, 19, 254, 0.3), inset 0 0 15px rgba(188, 19, 254, 0.1);
+            transform: rotateY(180deg);
+            color: #fff;
+            font-size: 0.9em;
+        }
+
+        .flashcard-front .emoji {
+            font-size: 1.5em;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* ===== РЕЖИМ 2: МАТЧИНГ ===== */
+        .matching-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .matching-column {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .match-card {
+            padding: 12px 15px;
+            border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.8em;
+            text-align: center;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .match-card:hover {
+            border-color: #00f3ff;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+
+        .match-card.selected {
+            border-color: #00f3ff;
+            background: rgba(0, 243, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+            transform: scale(1.03);
+        }
+
+        .match-card.correct {
+            border-color: #0aff0a;
+            background: rgba(10, 255, 10, 0.2);
+            box-shadow: 0 0 20px rgba(10, 255, 10, 0.4);
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .match-card.wrong {
+            border-color: #ff3333;
+            background: rgba(255, 51, 51, 0.2);
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        .col-header {
+            text-align: center;
+            font-size: 0.85em;
+            color: #bc13fe;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* ===== РЕЖИМ 3: ВИКТОРИНА ===== */
+        .quiz-container {
+            max-width: 600px;
+            margin: 20px auto;
+        }
+
+        .quiz-card {
+            background: linear-gradient(135deg, rgba(0, 243, 255, 0.1), rgba(188, 19, 254, 0.1));
+            border: 2px solid #00f3ff;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
+        }
+
+        .quiz-question {
+            font-size: 1.3em;
+            color: #00f3ff;
+            margin-bottom: 25px;
+            font-weight: 700;
+        }
+
+        .quiz-question .emoji-big {
+            font-size: 2em;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .quiz-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .quiz-option {
+            padding: 15px;
+            border: 2px solid rgba(188, 19, 254, 0.5);
+            border-radius: 12px;
+            background: rgba(188, 19, 254, 0.1);
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quiz-option:hover {
+            border-color: #bc13fe;
+            background: rgba(188, 19, 254, 0.3);
+            box-shadow: 0 0 15px rgba(188, 19, 254, 0.3);
+        }
+
+        .quiz-option.correct {
+            border-color: #0aff0a;
+            background: rgba(10, 255, 10, 0.3);
+            box-shadow: 0 0 20px rgba(10, 255, 10, 0.5);
+        }
+
+        .quiz-option.wrong {
+            border-color: #ff3333;
+            background: rgba(255, 51, 51, 0.3);
+        }
+
+        .quiz-progress {
+            margin-top: 20px;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .quiz-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00f3ff, #bc13fe);
+            border-radius: 4px;
+            transition: width 0.5s;
+        }
+
+        .next-btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            border: 2px solid #0aff0a;
+            background: rgba(10, 255, 10, 0.1);
+            color: #0aff0a;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9em;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: none;
+        }
+
+        .next-btn:hover {
+            background: #0aff0a;
+            color: #050510;
+            box-shadow: 0 0 20px #0aff0a;
+        }
+
+        /* Результат */
+        .result-screen {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .result-screen h2 {
+            font-size: 2em;
+            color: #0aff0a;
+            text-shadow: 0 0 20px #0aff0a;
+            margin-bottom: 15px;
+        }
+
+        .result-screen p {
+            font-size: 1.1em;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+
+        .restart-btn {
+            padding: 15px 40px;
+            border: 2px solid #bc13fe;
+            background: rgba(188, 19, 254, 0.1);
+            color: #bc13fe;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1em;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .restart-btn:hover {
+            background: #bc13fe;
+            color: #050510;
+            box-shadow: 0 0 20px #bc13fe;
+        }
+
+        /* Планета-декор */
+        .planet {
+            position: fixed;
+            border-radius: 50%;
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        .planet-1 {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle at 30% 30%, #bc13fe, #050510);
+            top: -50px;
+            right: -50px;
+            box-shadow: 0 0 60px rgba(188, 19, 254, 0.3);
+        }
+
+        .planet-2 {
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle at 40% 40%, #00f3ff, #050510);
+            bottom: 50px;
+            left: -30px;
+            box-shadow: 0 0 40px rgba(0, 243, 255, 0.3);
+        }
+
+        /* Адаптивность */
+        @media (max-width: 600px) {
+            h1 { font-size: 1.3em; }
+            .matching-area { grid-template-columns: 1fr; }
+            .quiz-options { grid-template-columns: 1fr; }
+            .flashcards-grid { grid-template-columns: 1fr 1fr; }
+            .mode-btn { padding: 8px 16px; font-size: 0.7em; }
+        }
+
+        /* Уведомление */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9em;
+            z-index: 100;
+            transition: transform 0.5s;
+        }
+
+        .notification.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .notification.success {
+            background: rgba(10, 255, 10, 0.2);
+            border: 2px solid #0aff0a;
+            color: #0aff0a;
+            box-shadow: 0 0 20px rgba(10, 255, 10, 0.3);
+        }
+
+        .notification.error {
+            background: rgba(255, 51, 51, 0.2);
+            border: 2px solid #ff3333;
+            color: #ff3333;
+            box-shadow: 0 0 20px rgba(255, 51, 51, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div class="comet"></div>
+<div class="planet planet-1"></div>
+<div class="planet planet-2"></div>
+
+<div class="notification" id="notification"></div>
+
+<div class="container">
+    <h1>🚀 House <span>Chores</span> 🛸</h1>
+
+    <div class="mode-nav">
+        <button class="mode-btn active" onclick="switchMode('flashcards')">🃏 Карточки</button>
+        <button class="mode-btn" onclick="switchMode('matching')">🔗 Матчинг</button>
+        <button class="mode-btn" onclick="switchMode('quiz')">❓ Викторина</button>
+    </div>
+
+    <div class="score-bar">
+        <div class="score-item">✅ Верно: <span class="num" id="correctCount">0</span></div>
+        <div class="score-item">❌ Ошибки: <span class="num" id="wrongCount">0</span></div>
+        <div class="score-item">📚 Изучено: <span class="num" id="learnedCount">0</span>/20</div>
+    </div>
+
+    <!-- РЕЖИМ 1: КАРТОЧКИ -->
+    <div class="game-section active" id="flashcards-section">
+        <p style="text-align:center; color:#888; font-size:0.8em; margin-bottom:15px;">Нажми на карточку, чтобы увидеть перевод</p>
+        <div class="flashcards-grid" id="flashcards-grid"></div>
+    </div>
+
+    <!-- РЕЖИМ 2: МАТЧИНГ -->
+    <div class="game-section" id="matching-section">
+        <p style="text-align:center; color:#888; font-size:0.8em; margin-bottom:15px;">Соедини английскую фразу с русским переводом</p>
+        <div class="matching-area">
+            <div>
+                <div class="col-header">🇬🇧 English</div>
+                <div class="matching-column" id="match-en"></div>
+            </div>
+            <div>
+                <div class="col-header">🇷🇺 Русский</div>
+                <div class="matching-column" id="match-ru"></div>
+            </div>
+        </div>
+        <div style="text-align:center; margin-top:15px;">
+            <button class="mode-btn" onclick="initMatching()" style="border-color:#0aff0a; color:#0aff0a;">🔄 Новая пара</button>
+        </div>
+    </div>
+
+    <!-- РЕЖИМ 3: ВИКТОРИНА -->
+    <div class="game-section" id="quiz-section">
+        <div class="quiz-container" id="quiz-container">
+            <div class="quiz-card">
+                <div class="quiz-question" id="quiz-question"></div>
+                <div class="quiz-options" id="quiz-options"></div>
+                <div class="quiz-progress">
+                    <div class="quiz-progress-bar" id="quiz-progress-bar"></div>
+                </div>
+                <button class="next-btn" id="next-btn" onclick="nextQuestion()">Следующий ➡️</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Данные фраз
+    const phrases = [
+        { en: "Do some work about the house", ru: "Делать работу по дому", emoji: "🏠" },
+        { en: "Do the ironing", ru: "Гладить бельё", emoji: "👔" },
+        { en: "Wash the car", ru: "Мыть машину", emoji: "🚗" },
+        { en: "Tidy the room", ru: "Убирать в комнате", emoji: "🛏️" },
+        { en: "Wash the dishes", ru: "Мыть посуду", emoji: "🍽️" },
+        { en: "Clean up", ru: "Убирать / Чистить", emoji: "🧹" },
+        { en: "Do the washing up", ru: "Мыть посуду", emoji: "🫧" },
+        { en: "Cook", ru: "Готовить", emoji: "👨‍🍳" },
+        { en: "Air the room", ru: "Проветривать комнату", emoji: "🌬️" },
+        { en: "Do the cooking", ru: "Заниматься готовкой", emoji: "🍳" },
+        { en: "Look after my pet", ru: "Ухаживать за питомцем", emoji: "🐾" },
+        { en: "Sweep the floor", ru: "Подметать пол", emoji: "🧹" },
+        { en: "Take the rubbish out", ru: "Выносить мусор", emoji: "🗑️" },
+        { en: "Vacuum the floor", ru: "Пылесосить пол", emoji: "🔌" },
+        { en: "Wash the sink/bath/toilet", ru: "Мыть раковину/ванну/туалет", emoji: "🚿" },
+        { en: "Wash the floor", ru: "Мыть пол", emoji: "💧" },
+        { en: "Do the laundry", ru: "Стирать бельё", emoji: "👕" },
+        { en: "Do the gardening", ru: "Работать в саду", emoji: "🌻" },
+        { en: "Water the flowers", ru: "Поливать цветы", emoji: "🌸" },
+        { en: "Do the dusting", ru: "Вытирать пыль", emoji: "✨" }
+    ];
+
+    let correctCount = 0;
+    let wrongCount = 0;
+    let learnedSet = new Set();
+
+    // Создание звёзд
+    function createStars() {
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 100; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            const size = Math.random() * 3 + 1;
+            star.style.width = size + 'px';
+            star.style.height = size + 'px';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
+            star.style.animationDelay = Math.random() * 3 + 's';
+            starsContainer.appendChild(star);
+        }
+    }
+
+    // Переключение режимов
+    function switchMode(mode) {
+        document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(mode + '-section').classList.add('active');
+        event.target.classList.add('active');
+
+        if (mode === 'matching') initMatching();
+        if (mode === 'quiz') initQuiz();
+    }
+
+    // Уведомление
+    function showNotification(text, type) {
+        const notif = document.getElementById('notification');
+        notif.textContent = text;
+        notif.className = 'notification ' + type + ' show';
+        setTimeout(() => notif.classList.remove('show'), 1500);
+    }
+
+    // Обновление счёта
+    function updateScore() {
+        document.getElementById('correctCount').textContent = correctCount;
+        document.getElementById('wrongCount').textContent = wrongCount;
+        document.getElementById('learnedCount').textContent = learnedSet.size;
+    }
+
+    // ===== РЕЖИМ 1: КАРТОЧКИ =====
+    function initFlashcards() {
+        const grid = document.getElementById('flashcards-grid');
+        grid.innerHTML = '';
+        const shuffled = [...phrases].sort(() => Math.random() - 0.5);
+
+        shuffled.forEach((phrase, i) => {
+            const card = document.createElement('div');
+            card.className = 'flashcard';
+            card.innerHTML = `
+                <div class="flashcard-inner">
+                    <div class="flashcard-front">
+                        <div>
+                            <span class="emoji">${phrase.emoji}</span>
+                            ${phrase.en}
+                        </div>
+                    </div>
+                    <div class="flashcard-back">
+                        ${phrase.ru}
+                    </div>
+                </div>
+            `;
+            card.addEventListener('click', () => {
+                card.classList.toggle('flipped');
+                if (card.classList.contains('flipped')) {
+                    learnedSet.add(phrase.en);
+                    updateScore();
+                }
+            });
+            grid.appendChild(card);
+        });
+    }
+
+    // ===== РЕЖИМ 2: МАТЧИНГ =====
+    let selectedEn = null;
+    let selectedRu = null;
+    let matchPairs = [];
+
+    function initMatching() {
+        selectedEn = null;
+        selectedRu = null;
+
+        const shuffled = [...phrases].sort(() => Math.random() - 0.5);
+        matchPairs = shuffled.slice(0, 6);
+
+        const enCol = document.getElementById('match-en');
+        const ruCol = document.getElementById('match-ru');
+        enCol.innerHTML = '';
+        ruCol.innerHTML = '';
+
+        const enShuffled = [...matchPairs].sort(() => Math.random() - 0.5);
+        const ruShuffled = [...matchPairs].sort(() => Math.random() - 0.5);
+
+        enShuffled.forEach(phrase => {
+            const card = document.createElement('div');
+            card.className = 'match-card';
+            card.textContent = phrase.emoji + ' ' + phrase.en;
+            card.dataset.en = phrase.en;
+            card.addEventListener('click', () => selectMatch(card, 'en', phrase.en));
+            enCol.appendChild(card);
+        });
+
+        ruShuffled.forEach(phrase => {
+            const card = document.createElement('div');
+            card.className = 'match-card';
+            card.textContent = phrase.ru;
+            card.dataset.ru = phrase.en;
+            card.addEventListener('click', () => selectMatch(card, 'ru', phrase.en));
+            ruCol.appendChild(card);
+        });
+    }
+
+    function selectMatch(card, side, key) {
+        if (card.classList.contains('correct')) return;
+
+        if (side === 'en') {
+            document.querySelectorAll('#match-en .match-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            selectedEn = { card, key };
+        } else {
+            document.querySelectorAll('#match-ru .match-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            selectedRu = { card, key };
+        }
+
+        if (selectedEn && selectedRu) {
+            checkMatch();
+        }
+    }
+
+    function checkMatch() {
+        if (selectedEn.key === selectedRu.key) {
+            selectedEn.card.classList.remove('selected');
+            selectedRu.card.classList.remove('selected');
+            selectedEn.card.classList.add('correct');
+            selectedRu.card.classList.add('correct');
+            correctCount++;
+            learnedSet.add(selectedEn.key);
+            showNotification('✅ Правильно!', 'success');
+        } else {
+            selectedEn.card.classList.add('wrong');
+            selectedRu.card.classList.add('wrong');
+            wrongCount++;
+            showNotification('❌ Неправильно!', 'error');
+            setTimeout(() => {
+                selectedEn.card.classList.remove('wrong', 'selected');
+                selectedRu.card.classList.remove('wrong', 'selected');
+            }, 800);
+        }
+        selectedEn = null;
+        selectedRu = null;
+        updateScore();
+
+        // Проверить, все ли пары найдены
+        const allCorrect = document.querySelectorAll('.match-card.correct').length;
+        if (allCorrect === matchPairs.length * 2) {
+            setTimeout(() => {
+                showNotification('🎉 Все пары найдены! Новая пара...', 'success');
+                setTimeout(initMatching, 1500);
+            }, 500);
+        }
+    }
+
+    // ===== РЕЖИМ 3: ВИКТОРИНА =====
+    let quizIndex = 0;
+    let quizShuffled = [];
+    let quizAnswered = false;
+
+    function initQuiz() {
+        quizShuffled = [...phrases].sort(() => Math.random() - 0.5);
+        quizIndex = 0;
+        quizAnswered = false;
+        showQuestion();
+    }
+
+    function showQuestion() {
+        if (quizIndex >= quizShuffled.length) {
+            showQuizResult();
+            return;
+        }
+
+        quizAnswered = false;
+        const phrase = quizShuffled[quizIndex];
+        const isEnToRu = Math.random() > 0.5;
+
+        const questionEl = document.getElementById('quiz-question');
+        const optionsEl = document.getElementById('quiz-options');
+        const nextBtn = document.getElementById('next-btn');
+        const progressBar = document.getElementById('quiz-progress-bar');
+
+        nextBtn.style.display = 'none';
+
+        if (isEnToRu) {
+            questionEl.innerHTML = `<span class="emoji-big">${phrase.emoji}</span>Как переводится:<br>"${phrase.en}"?`;
+        } else {
+            questionEl.innerHTML = `<span class="emoji-big">${phrase.emoji}</span>Как по-английски:<br>"${phrase.ru}"?`;
+        }
+
+        // Варианты ответов
+        let options = [phrase];
+        const others = phrases.filter(p => p.en !== phrase.en);
+        const shuffledOthers = others.sort(() => Math.random() - 0.5).slice(0, 3);
+        options = [...options, ...shuffledOthers].sort(() => Math.random() - 0.5);
+
+        optionsEl.innerHTML = '';
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'quiz-option';
+            btn.textContent = isEnToRu ? opt.ru : opt.en;
+            btn.dataset.key = opt.en;
+            btn.addEventListener('click', () => checkQuizAnswer(btn, phrase.en, isEnToRu));
+            optionsEl.appendChild(btn);
+        });
+
+        progressBar.style.width = ((quizIndex / quizShuffled.length) * 100) + '%';
+    }
+
+    function checkQuizAnswer(btn, correctKey, isEnToRu) {
+        if (quizAnswered) return;
+        quizAnswered = true;
+
+        const allBtns = document.querySelectorAll('.quiz-option');
+
+        if (btn.dataset.key === correctKey) {
+            btn.classList.add('correct');
+            correctCount++;
+            learnedSet.add(correctKey);
+            showNotification('✅ Верно!', 'success');
+        } else {
+            btn.classList.add('wrong');
+            wrongCount++;
+            showNotification('❌ Ошибка!', 'error');
+            allBtns.forEach(b => {
+                if (b.dataset.key === correctKey) b.classList.add('correct');
+            });
+        }
+
+        updateScore();
+        document.getElementById('next-btn').style.display = 'inline-block';
+    }
+
+    function nextQuestion() {
+        quizIndex++;
+        showQuestion();
+    }
+
+    function showQuizResult() {
+        const container = document.getElementById('quiz-container');
+        const total = quizShuffled.length;
+        const pct = Math.round((correctCount / (correctCount + wrongCount || 1)) * 100);
+        let message = '';
+        if (pct >= 90) message = '🏆 Превосходно!';
+        else if (pct >= 70) message = '🌟 Отлично!';
+        else if (pct >= 50) message = '👍 Хорошо!';
+        else message = '💪 Продолжай учиться!';
+
+        container.innerHTML = `
+            <div class="quiz-card result-screen">
+                <h2>${message}</h2>
+                <p>Викторина завершена!<br>Правильных ответов: ${correctCount} из ${total}</p>
+                <button class="restart-btn" onclick="resetQuiz()">🔄 Начать заново</button>
+            </div>
+        `;
+    }
+
+    function resetQuiz() {
+        correctCount = 0;
+        wrongCount = 0;
+        updateScore();
+        const container = document.getElementById('quiz-container');
+        container.innerHTML = `
+            <div class="quiz-card">
+                <div class="quiz-question" id="quiz-question"></div>
+                <div class="quiz-options" id="quiz-options"></div>
+                <div class="quiz-progress">
+                    <div class="quiz-progress-bar" id="quiz-progress-bar"></div>
+                </div>
+                <button class="next-btn" id="next-btn" onclick="nextQuestion()">Следующий ➡️</button>
+            </div>
+        `;
+        initQuiz();
+    }
+
+    // Инициализация
+    createStars();
+    initFlashcards();
+</script>
+
+</body>
+</html>
